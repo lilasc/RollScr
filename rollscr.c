@@ -9,141 +9,68 @@ enum Speed {Up, Down};
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow) {
 	HDC hdcScr, hdcMem;
-	int cxScreen, cyScreen, div, len;
+	//cScreen[0] = cxScreen, cScreen[1] = cyScreen
+	int cScreen[2], div, len;
 	int i, count;
 	int last;
+	int direction, dirdiv2;
 	enum Speed speed;
 	HBITMAP hBitmap;
 	HWND hwnd;
-/*	TCHAR szbuf[100];*/
+
 	if (LockWindowUpdate(hwnd = GetDesktopWindow())) {
 		hdcScr = GetDCEx(hwnd, NULL, DCX_CACHE | DCX_LOCKWINDOWUPDATE);
 		hdcMem = CreateCompatibleDC(hdcScr);
-		cxScreen = GetSystemMetrics(SM_CXSCREEN);
-		cyScreen = GetSystemMetrics(SM_CYSCREEN);
-		hBitmap = CreateCompatibleBitmap(hdcScr, cxScreen, cyScreen);
+		cScreen[0] = GetSystemMetrics(SM_CXSCREEN);
+		cScreen[1] = GetSystemMetrics(SM_CYSCREEN);
+		hBitmap = CreateCompatibleBitmap(hdcScr, cScreen[0], cScreen[1]);
 		SelectObject(hdcMem, hBitmap);
 
 		div = MAX;
-		last = LAST;
-		speed = Up;
 		count = ((MAX - MIN) * 2 - 1) * INTERVAL + LAST;
-		len = cxScreen / div;
-
-		for (i = 0; i < count; i++) {
-			if (GetAsyncKeyState(VK_ESCAPE) < 0)
-				goto EXIT;
-
-			BitBlt(hdcMem, 0, 0, cxScreen - len, cyScreen, hdcScr, len, 0, SRCCOPY);
-			BitBlt(hdcMem, cxScreen - len, 0, len, cyScreen, hdcScr, 0, 0, SRCCOPY);
-			BitBlt(hdcScr, 0, 0, cxScreen, cyScreen, hdcMem, 0, 0, SRCCOPY);
-
-			if (speed == Up && div > MIN) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div--;
-			}
-			else
-				speed = Down;
-
-			if (speed == Down && div == MIN && last-- > 0)
-				continue;
+		for (direction = 0; direction < 4; direction++) {
+			last = LAST;
+			speed = Up;
 			
-			if (speed == Down && div < MAX) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div++;
+			dirdiv2 = direction / 2;
 
-			}
-		}
+			len = cScreen[dirdiv2] / div;
+			
+			for (i = 0; i < count; i++) {
+				if (GetAsyncKeyState(VK_ESCAPE) < 0)
+					goto EXIT;
 
-		speed = Up;
-		last = LAST;
-		len = cxScreen / div;
-		for (i = 0; i < count; i++) {
-			if (GetAsyncKeyState(VK_ESCAPE) < 0)
-				goto EXIT;
+				if (dirdiv2) {
+					
+					BitBlt(hdcMem, 0, 0, cScreen[0], (cScreen[1] - len) % cScreen[1], hdcScr, 0, (cScreen[1] + len) % cScreen[1], SRCCOPY);
+					BitBlt(hdcMem, 0, (cScreen[1] - len) % cScreen[1], cScreen[0], (cScreen[1] + len) % cScreen[1], hdcScr, 0, 0, SRCCOPY);
+					BitBlt(hdcScr, 0, 0, cScreen[0], cScreen[1], hdcMem, 0, 0, SRCCOPY);
+				}
+				else {
+					BitBlt(hdcMem, 0, 0, (cScreen[0] - len) % cScreen[0], cScreen[1], hdcScr, (cScreen[0] + len) % cScreen[0], 0, SRCCOPY);
+					BitBlt(hdcMem, (cScreen[0] - len) % cScreen[0], 0, (cScreen[0] + len) % cScreen[0], cScreen[1], hdcScr, 0, 0, SRCCOPY);
+					BitBlt(hdcScr, 0, 0, cScreen[0], cScreen[1], hdcMem, 0, 0, SRCCOPY);
+				}
 
-			BitBlt(hdcMem, len, 0, cxScreen - len, cyScreen, hdcScr, 0, 0, SRCCOPY);
-			BitBlt(hdcMem, 0, 0, len, cyScreen, hdcScr, cxScreen - len, 0, SRCCOPY);
-			BitBlt(hdcScr, 0, 0, cxScreen, cyScreen, hdcMem, 0, 0, SRCCOPY);
-			
-			if (speed == Up && div > MIN) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div--;
-			}
-			else
-				speed = Down;
-			
-			if (speed == Down && div == MIN && last-- > 0)
-				continue;
-			
-			if (speed == Down && div < MAX) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div++;
+				if (speed == Up && div > MIN) {
+					if (!(i % INTERVAL))
+						len = ((direction % 2)? -1 : 1) * cScreen[dirdiv2] / div--;
+				}
+				else
+					speed = Down;
 				
-			}
-		}
-		
-		InvalidateRect(hwnd, NULL, TRUE);
-		speed = Up;
-		last = LAST;
-		len = cyScreen / div;
-		for (i = 0; i < count; i++) {
-			if (GetAsyncKeyState(VK_ESCAPE) < 0)
-				goto EXIT;
-
-			BitBlt(hdcMem, 0, 0, cxScreen, cyScreen - len, hdcScr, 0, len, SRCCOPY);
-			BitBlt(hdcMem, 0, cyScreen - len, cxScreen, len, hdcScr, 0, 0, SRCCOPY);
-			BitBlt(hdcScr, 0, 0, cxScreen, cyScreen, hdcMem, 0, 0, SRCCOPY);
-			
-			if (speed == Up && div > MIN) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div--;
-			}
-			else
-				speed = Down;
-			
-			if (speed == Down && div == MIN && last-- > 0)
-				continue;
-			
-			if (speed == Down && div < MAX) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div++;
+				if (speed == Down && div == MIN && last-- > 0)
+					continue;
 				
-			}
-		}
-
-		speed = Up;
-		last = LAST;
-		len = cyScreen / div;
-		for (i = 0; i < count; i++) {
-			if (GetAsyncKeyState(VK_ESCAPE) < 0)
-				goto EXIT;
-
-			BitBlt(hdcMem, 0, 0, cxScreen, len, hdcScr, 0, cyScreen - len, SRCCOPY);
-			BitBlt(hdcMem, 0, len, cxScreen, cyScreen - len, hdcScr, 0, 0, SRCCOPY);
-			BitBlt(hdcScr, 0, 0, cxScreen, cyScreen, hdcMem, 0, 0, SRCCOPY);
-			
-			if (speed == Up && div > MIN) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div--;
-			}
-			else
-				speed = Down;
-			
-			if (speed == Down && div == MIN && last-- > 0)
-				continue;
-			
-			if (speed == Down && div < MAX) {
-				if (!(i % INTERVAL))
-					len = cxScreen / div++;
-				
+				if (speed == Down && div < MAX) {
+					if (!(i % INTERVAL))
+						len = ((direction % 2)? -1 : 1) * cScreen[dirdiv2] / div++;				
+				}
 			}
 		}
 
 EXIT:
 		InvalidateRect(hwnd, NULL, TRUE);
-// 		wsprintf(szbuf, "The div is %d.", div);
-// 		MessageBox(NULL, szbuf, NULL, 0);
 		DeleteDC(hdcMem);
 		ReleaseDC(hwnd, hdcScr);
 		DeleteObject(hBitmap);
